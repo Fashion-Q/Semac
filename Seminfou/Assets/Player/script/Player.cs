@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class Player : ICharacter
@@ -13,9 +14,27 @@ public class Player : ICharacter
         Move();
     }
 
+    public float habilitarTempoPlataforma = 0.5f;
+    private bool poderDesabilitarPlataforma = true;
+    IEnumerator HabilitarLayerPlataforma()
+    {
+        Physics2D.IgnoreLayerCollision(6, 7, true);
+        poderDesabilitarPlataforma = false;
+         yield return new WaitForSeconds(habilitarTempoPlataforma);
+        Physics2D.IgnoreLayerCollision(6, 7, false);
+        poderDesabilitarPlataforma = true;
+    }
+
     public void Jump()
     {
-        if(Input.GetKeyDown(KeyCode.Space) && !IsJumping)
+        if(Input.GetKey(KeyCode.S) && Input.GetKeyDown(KeyCode.Space) && !IsJumping)
+        {
+            if (poderDesabilitarPlataforma)
+            {
+                StartCoroutine(HabilitarLayerPlataforma());
+            }
+        }
+        else if(Input.GetKeyDown(KeyCode.Space) && !IsJumping)
         {
             IsJumping = true;
             GetRB.velocity = new Vector2(GetRB.velocity.x,0);
