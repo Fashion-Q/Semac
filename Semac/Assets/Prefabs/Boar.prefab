@@ -78,7 +78,7 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: -1002254723
-  m_SortingLayer: 2
+  m_SortingLayer: 3
   m_SortingOrder: -1
   m_Sprite: {fileID: 1068301157, guid: 303c12f2d73fd324e8eaa5179b6808a6, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -390,7 +390,7 @@ GameObject:
   - component: {fileID: 4033704545905397974}
   - component: {fileID: 1055466508424920561}
   - component: {fileID: 2687644213853453885}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: HurtPlayerInTheCollision
   m_TagString: Untagged
   m_Icon: {fileID: 0}
