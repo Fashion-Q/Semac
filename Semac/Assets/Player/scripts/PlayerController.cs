@@ -6,7 +6,7 @@ public class PlayerController : ICombateEntity
     [SerializeField] private float JumpForce;
     [SerializeField] private LayerMask layerEnemy;
     private RaycastHit2D IsGround { get; set; }
-    [SerializeField] LayerMask layerGround;
+    [SerializeField] private LayerMask layerGround;
     private readonly Vector3 offSetGroundRayCastLeft = new(-0.07f, -0.75f, 0);
     private readonly Vector3 offSetGroundRayCastRight = new(0.07f, -0.75f, 0);
     public const float rayCastGroundDistance = 0.25f;
@@ -30,29 +30,27 @@ public class PlayerController : ICombateEntity
         if (IsHurting)
             return;
         speed = 0;
-        if (!IsAnimatorName("attack_base"))
-        {
-            if (Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D))
-                MoveLeft();
-            if (Input.GetKey(KeyCode.D) && !Input.GetKey(KeyCode.A))
-                MoveRight();
-        }
+        if (IsAnimatorName("attack_base"))
+            return;
+        if (Input.GetKey(KeyCode.S))
+            Crouch();
+        else
+            StandUp();
+        if (Input.GetKey(KeyCode.A) && !Input.GetKey(KeyCode.D))
+            MoveLeft();
+        if (Input.GetKey(KeyCode.D) && !Input.GetKey(KeyCode.A))
+            MoveRight();
         if (Input.GetMouseButtonDown(0))
             BaseAttack();
-        if (!IsAnimatorName("attack_base"))
-        {
-            if (Input.GetKeyDown(KeyCode.Space))
-                Jump();
-            if (Input.GetKey(KeyCode.S))
-                Crouch();
-            else
-                StandUp();
-            if (IsAnimatorName("crouch") && Input.GetKeyDown(KeyCode.Space))
-                TurnOffPhysicsPlayerAndPlataform();
-            Jumping();
-            Falling();
-            Idle();
-        }
+        if (Input.GetKeyDown(KeyCode.Space))
+            Jump();
+
+        if (IsAnimatorName("crouch") && Input.GetKeyDown(KeyCode.Space))
+            TurnOffPhysicsPlayerAndPlataform();
+        Jumping();
+        Falling();
+        Idle();
+
     }
     private void FixedUpdate()
     {
@@ -63,26 +61,34 @@ public class PlayerController : ICombateEntity
     {
         IsGround = Physics2D.Raycast(transform.position + offSetGroundRayCastLeft, Vector2.down, rayCastGroundDistance + FixRayCastGroundDistance, layerGround);
         Debug.DrawRay(transform.position + offSetGroundRayCastLeft, Vector2.down * (rayCastGroundDistance + FixRayCastGroundDistance), Color.red);
-        if (!IsGround)
+        if (!IsGround.collider)
         {
             IsGround = Physics2D.Raycast(transform.position + offSetGroundRayCastRight, Vector2.down, rayCastGroundDistance + FixRayCastGroundDistance, layerGround);
             Debug.DrawRay(transform.position + offSetGroundRayCastRight, Vector2.down * (rayCastGroundDistance + FixRayCastGroundDistance), Color.red);
         }
     }
+    /*
+     // Incluir apenas a camada 5
+        layerGround = 1 << 5;
+     // Incluir a camada 5 e camada 7
+        layerGround = (1 << 5) | (1 << 7);
+     */
     public void TurnOffPhysicsPlayerAndPlataform()
     {
         if (!Physics2D.GetIgnoreLayerCollision(6, 7))
         {
             Physics2D.IgnoreLayerCollision(6, 7, true);
+            layerGround = 1 << 9;
             StartCoroutine(TurnOnPhysicsPlayerAndPlataform());
         }
     }
     IEnumerator TurnOnPhysicsPlayerAndPlataform()
     {
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(0.2f);
         if (Physics2D.GetIgnoreLayerCollision(6, 7))
         {
             Physics2D.IgnoreLayerCollision(6, 7, false);
+            layerGround = (1 << 7) | (1 << 9);
         }
     }
     public void BaseAttack()
@@ -129,7 +135,7 @@ public class PlayerController : ICombateEntity
         speed = -300;
         if (!FlipX)
             FlipX = true;
-        if (!IsAnimatorName("run") && IsGround && !IsAnimatorName("jumping"))
+        if (!IsAnimatorName("run") && IsGround.collider && !IsAnimatorName("jumping"))
         {
             Trigger("run");
             GetRB.velocity = new Vector2(GetRB.velocity.x, 0);
@@ -141,7 +147,7 @@ public class PlayerController : ICombateEntity
         speed = 300;
         if (FlipX)
             FlipX = false;
-        if (!IsAnimatorName("run") && IsGround && !IsAnimatorName("jumping"))
+        if (!IsAnimatorName("run") && IsGround.collider && !IsAnimatorName("jumping"))
         {
             Trigger("run");
             GetRB.velocity = new Vector2(GetRB.velocity.x, 0);
@@ -150,10 +156,10 @@ public class PlayerController : ICombateEntity
     }
     public void Idle()
     {
-        if (speed == 0 && !IsAnimatorName("idle") && IsGround &&
-            !IsAnimatorName("crouch") && !IsAnimatorName("attack_base")
-            && !IsAnimatorName("jumping"))
-        {
+        if (speed == 0 && !IsAnimatorName("idle") && IsGround.collider &&
+            !IsAnimatorName("crouch") && !IsAnimatorName("jumping")||
+            (IsAnimatorName("jumping") && GetRB.velocity.y < 4f) && IsGround.collider)
+            {
             if (IsAnimatorName("falling"))
                 FixRayCastGroundDistance = 0f;
             Trigger("idle");
@@ -161,8 +167,8 @@ public class PlayerController : ICombateEntity
     }
     public void Jumping()
     {
-        if (!IsGround && !IsAnimatorName("jumping") && !IsAnimatorName("falling")
-            && !IsAnimatorName("attack_base"))
+        if (!IsGround.collider && !IsAnimatorName("jumping") &&
+            !IsAnimatorName("falling") && GetRB.velocity.y > 4f)
         {
             Trigger("jumping");
         }
@@ -179,13 +185,15 @@ public class PlayerController : ICombateEntity
     public void Falling()
     {
         if (GetRB.velocity.y <= 0
-            && !IsGround
+            && !IsGround.collider
             && !IsAnimatorName("falling"))
+        {
             Trigger("falling");
+        }
     }
     public override void Hurt(int damage)
     {
-        if (CanReceiveDamage && life > 0)
+        if (CanReceiveDamage)
         {
             life -= damage;
             speed = FlipX ? 100f : -100f;
@@ -202,11 +210,11 @@ public class PlayerController : ICombateEntity
             }
         }
     }
-    [SerializeField] private void AfterHurt() => IsHurting = false;
     private IEnumerator FreezeReceiveDamage(float seconds)
     {
         yield return new WaitForSeconds(seconds);
         CanReceiveDamage = true;
     }
+    [SerializeField] private void AfterHurt() => IsHurting = false;
     private bool IsHurting { get; set; } = false;
 }
