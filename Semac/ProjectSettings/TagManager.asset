@@ -20,7 +20,7 @@ TagManager:
   - GroundCollision
   - HurtPlayerInCollision
   - DetectPlayerInArea
-  - 
+  - wall
   - 
   - 
   - 
